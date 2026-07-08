@@ -254,8 +254,7 @@ def classify_with_claude(candidates: list[Candidate], profile: dict[str, Any], w
             f"Candidates: {json.dumps(compact, ensure_ascii=False)}"
         ),
     }
-    payload = {
-        "model": os.getenv("ANTHROPIC_MODEL", "claude-haiku-4-5"),
+    base_payload = {
         "max_tokens": 6000,
         "temperature": 0.1,
         "messages": [prompt],
@@ -265,11 +264,25 @@ def classify_with_claude(candidates: list[Candidate], profile: dict[str, Any], w
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
     }
-    response = requests.post("https://api.anthropic.com/v1/messages", headers=headers, json=payload, timeout=90)
-    response.raise_for_status()
-    data = response.json()
-    text = "".join(block.get("text", "") for block in data.get("content", []) if block.get("type") == "text")
-    return parse_findings_json(text, candidates)
+    preferred_model = os.getenv("ANTHROPIC_MODEL", "claude-3-5-haiku-latest")
+    fallback_models = [
+        preferred_model,
+        "claude-3-5-haiku-20241022",
+        "claude-3-haiku-20240307",
+    ]
+    tried: list[str] = []
+    for model in dict.fromkeys(fallback_models):
+        tried.append(model)
+        payload = {"model": model, **base_payload}
+        response = requests.post("https://api.anthropic.com/v1/messages", headers=headers, json=payload, timeout=90)
+        if response.ok:
+            data = response.json()
+            text = "".join(block.get("text", "") for block in data.get("content", []) if block.get("type") == "text")
+            return parse_findings_json(text, candidates)
+        print(f"Claude request failed for model {model}: HTTP {response.status_code} {response.text[:1000]}")
+
+    note = f"Claude API failed for models: {', '.join(tried)}"
+    return [heuristic_finding(c, note) for c in candidates[:25]]
 
 
 def parse_findings_json(text: str, candidates: list[Candidate]) -> list[dict[str, Any]]:

@@ -21,7 +21,7 @@ jobs:
     env:
       TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      ANTHROPIC_MODEL: claude-haiku-4-5
+      ANTHROPIC_MODEL: claude-3-5-haiku-latest
       FORCE_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.force_run }}
 
     steps:
