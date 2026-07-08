@@ -28,6 +28,69 @@ SNAPSHOT_FILE = DATA / "source_snapshots" / "source_hashes.json"
 FINDINGS_XLSX = DATA / "findings.xlsx"
 SYDNEY = ZoneInfo("Australia/Sydney")
 
+PRODUCT_TERMS = [
+    "patient handling",
+    "patient positioning",
+    "positioning",
+    "lateral transfer",
+    "air-assisted",
+    "air assisted",
+    "floor recovery",
+    "hoist",
+    "lifter",
+    "sling",
+    "transfer board",
+    "slide sheet",
+    "pressure care",
+    "pressure injury",
+    "hospital bed",
+    "bed mover",
+    "stretcher",
+    "trolley",
+    "treatment chair",
+    "transfer chair",
+    "underpad",
+    "apron",
+    "gown",
+    "ppe",
+    "curtain",
+    "infection control",
+    "theatre",
+    "surgical",
+]
+
+CHANGE_TERMS = [
+    "new",
+    "launch",
+    "launched",
+    "introducing",
+    "available",
+    "catalogue",
+    "brochure",
+    "product alert",
+    "recall",
+    "safety",
+    "contract",
+    "partnership",
+    "award",
+    "artg",
+    "registered",
+]
+
+ACCOUNT_TERMS = [
+    "calvary",
+    "healthscope",
+    "ramsay",
+    "st john of god",
+    "mater",
+    "epworth",
+    "cabrini",
+    "princess alexandra",
+    "pa hospital",
+    "monash health",
+    "austin health",
+]
+
 
 @dataclass
 class Candidate:
@@ -223,7 +286,7 @@ def classify_with_claude(candidates: list[Candidate], profile: dict[str, Any], w
         return []
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
-        return [heuristic_finding(c, "Claude unavailable: ANTHROPIC_API_KEY not set") for c in candidates[:25]]
+        return heuristic_findings(candidates, "Claude unavailable: ANTHROPIC_API_KEY not set")
 
     compact = [
         {
@@ -282,13 +345,13 @@ def classify_with_claude(candidates: list[Candidate], profile: dict[str, Any], w
         print(f"Claude request failed for model {model}: HTTP {response.status_code} {response.text[:1000]}")
 
     note = f"Claude API failed for models: {', '.join(tried)}"
-    return [heuristic_finding(c, note) for c in candidates[:25]]
+    return heuristic_findings(candidates, note)
 
 
 def parse_findings_json(text: str, candidates: list[Candidate]) -> list[dict[str, Any]]:
     match = re.search(r"\{.*\}", text, flags=re.S)
     if not match:
-        return [heuristic_finding(c, "Claude response was not parseable JSON") for c in candidates[:20]]
+        return heuristic_findings(candidates, "Claude response was not parseable JSON")
     parsed = json.loads(match.group(0))
     findings = parsed.get("findings", [])
     cleaned = []
@@ -299,29 +362,125 @@ def parse_findings_json(text: str, candidates: list[Candidate]) -> list[dict[str
     return cleaned[:35]
 
 
+def heuristic_findings(candidates: list[Candidate], note: str, limit: int = 30) -> list[dict[str, Any]]:
+    ranked = sorted(candidates, key=heuristic_score, reverse=True)
+    findings = []
+    seen_urls = set()
+    for candidate in ranked:
+        if candidate.url in seen_urls:
+            continue
+        seen_urls.add(candidate.url)
+        score = heuristic_score(candidate)
+        if score < 3:
+            continue
+        findings.append(heuristic_finding(candidate, note))
+        if len(findings) >= limit:
+            break
+    if findings:
+        return findings
+    return [heuristic_finding(c, note) for c in ranked[: min(limit, len(ranked))]]
+
+
+def heuristic_score(candidate: Candidate) -> int:
+    text = f"{candidate.title} {candidate.snippet} {candidate.evidence} {candidate.source_type}".lower()
+    score = 0
+    score += sum(1 for term in PRODUCT_TERMS if term in text)
+    score += 2 * sum(1 for term in CHANGE_TERMS if term in text)
+    score += 2 * sum(1 for term in ACCOUNT_TERMS if term in text)
+    if "haines" in candidate.competitor_or_sponsor.lower():
+        score += 4
+    if "artg" in text or "regulatory" in candidate.source_type.lower() or "tga.gov.au" in candidate.url:
+        score += 5
+    if "linkedin.com" in candidate.url:
+        score += 1
+    if "news" in candidate.url or "blog" in candidate.url or "resource" in candidate.url:
+        score += 2
+    return score
+
+
 def heuristic_finding(candidate: Candidate, note: str) -> dict[str, Any]:
-    text = f"{candidate.title} {candidate.snippet}".lower()
+    text = f"{candidate.title} {candidate.snippet} {candidate.evidence} {candidate.url}".lower()
+    score = heuristic_score(candidate)
     priority = "Low priority"
-    action = "Monitor"
-    if any(term in text for term in ["artg", "recall", "safety", "launch", "new product", "tender", "contract"]):
+    action = choose_action(candidate, text)
+    if score >= 12:
+        priority = "High priority"
+    elif score >= 6:
         priority = "Medium priority"
     if "haines" in candidate.competitor_or_sponsor.lower():
-        priority = "Medium priority"
-    if candidate.source_type.startswith("ARTG"):
-        action = "Compliance review"
+        priority = "High priority" if score >= 8 else "Medium priority"
+    if any(term in text for term in ["recall", "safety alert", "product alert"]):
+        priority = "High priority"
+
+    matched_terms = [term for term in PRODUCT_TERMS + CHANGE_TERMS + ACCOUNT_TERMS if term in text][:8]
+    what_changed = describe_change(candidate, matched_terms)
+    why_it_matters = describe_relevance(candidate, matched_terms, text)
     return {
         "source": candidate.source,
         "date_found": candidate.date_found,
         "competitor_or_sponsor": candidate.competitor_or_sponsor,
         "product_category": candidate.product_category,
-        "what_changed": f"Possible signal found: {candidate.title}",
-        "why_it_matters": clean_text(candidate.snippet, 450),
+        "what_changed": what_changed,
+        "why_it_matters": why_it_matters,
         "priority": priority,
         "suggested_jdhg_action": action,
-        "confidence": f"Low: {note}",
+        "confidence": f"{heuristic_confidence(score)}: Rule-based triage because Claude did not run. {note}",
         "source_type": candidate.source_type,
         "url": candidate.url,
     }
+
+
+def choose_action(candidate: Candidate, text: str) -> str:
+    if candidate.source_type.startswith("ARTG") or "artg" in text or "tga.gov.au" in candidate.url:
+        return "Compliance review"
+    if any(term in text for term in ["calvary", "healthscope", "ramsay", "cabrini", "mater", "epworth"]):
+        return "Account follow-up"
+    if any(term in text for term in ["catalogue", "brochure", "resource", "white paper", "education"]):
+        return "Update sales collateral"
+    if any(term in text for term in ["new", "launch", "introducing", "available", "product alert"]):
+        return "Review product overlap"
+    if "contract" in text or "tender" in text or "panel" in text:
+        return "Add to tender intelligence"
+    return "Monitor"
+
+
+def describe_change(candidate: Candidate, matched_terms: list[str]) -> str:
+    title = candidate.title or "Untitled source"
+    if candidate.source_type.startswith("ARTG"):
+        return f"Possible ARTG/regulatory signal surfaced for review: {title}"
+    if candidate.source_type == "Website change detection":
+        return f"Website content changed since the previous scan: {title}"
+    if "Supplier competitor" in candidate.source_type:
+        return f"Supplier-ecosystem competitor signal surfaced: {title}"
+    if matched_terms:
+        return f"Possible relevant market signal surfaced ({', '.join(matched_terms[:5])}): {title}"
+    return f"Possible market signal surfaced: {title}"
+
+
+def describe_relevance(candidate: Candidate, matched_terms: list[str], text: str) -> str:
+    reasons = []
+    if "haines" in candidate.competitor_or_sponsor.lower():
+        reasons.append("Haines is a priority competitor for JDHG.")
+    if candidate.source_type.startswith("ARTG") or "artg" in text:
+        reasons.append("Regulatory entries can indicate new supply capability, sponsor activity, or category compliance changes.")
+    if any(term in text for term in ["new", "launch", "introducing", "available", "product alert"]):
+        reasons.append("The wording suggests a product, catalogue, or availability change that should be verified.")
+    if any(term in text for term in ACCOUNT_TERMS):
+        reasons.append("The signal mentions a watched hospital or private hospital group.")
+    if matched_terms:
+        reasons.append(f"Matched JDHG-relevant terms: {', '.join(matched_terms[:8])}.")
+    snippet = clean_text(candidate.snippet, 360)
+    if snippet:
+        reasons.append(f"Evidence snippet: {snippet}")
+    return " ".join(reasons) or "The source was returned by a targeted JDHG market-watch query and should be reviewed for relevance."
+
+
+def heuristic_confidence(score: int) -> str:
+    if score >= 12:
+        return "Medium"
+    if score >= 6:
+        return "Low-Medium"
+    return "Low"
 
 
 def render_markdown(findings: list[dict[str, Any]], profile: dict[str, Any], date_found: str) -> str:
