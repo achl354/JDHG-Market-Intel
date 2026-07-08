@@ -1,0 +1,61 @@
+name: Fortnightly JDHG Market Scan
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_run:
+        description: "Run even if the fortnightly schedule guard would skip"
+        type: boolean
+        default: true
+  schedule:
+    # 8am Sydney is 21:00 UTC during AEDT and 22:00 UTC during AEST.
+    - cron: "0 21 * * 0"
+    - cron: "0 22 * * 0"
+
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    env:
+      TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ANTHROPIC_MODEL: claude-haiku-4-5
+      FORCE_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.force_run }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run market scan
+        run: python scripts/run_market_scan.py
+
+      - name: Commit report outputs
+        run: |
+          git config user.name "jdhg-market-intel-bot"
+          git config user.email "actions@github.com"
+          git add reports data
+          if git diff --cached --quiet; then
+            echo "No report changes to commit."
+          else
+            git commit -m "Add JDHG market scan report"
+            git push
+          fi
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jdhg-market-scan
+          path: |
+            reports/*.md
+            reports/*.pdf
+            data/findings.xlsx

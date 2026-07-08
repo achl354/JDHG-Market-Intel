@@ -1,0 +1,198 @@
+{
+  "jdhg_categories": [
+    "patient handling and positioning devices",
+    "theatre consumables",
+    "hospital consumables",
+    "underpads",
+    "aprons",
+    "gowns",
+    "PPE",
+    "antibacterial curtains",
+    "bed movers",
+    "hospital beds",
+    "patient stretchers",
+    "treatment chairs",
+    "transfer chairs"
+  ],
+  "accounts_to_watch": [
+    "Calvary",
+    "Healthscope",
+    "Ramsay Health Care",
+    "St John of God Health Care",
+    "Mater",
+    "Epworth",
+    "Cabrini",
+    "PA Hospital",
+    "Princess Alexandra Hospital",
+    "public hospital groups Australia",
+    "large Australian hospitals"
+  ],
+  "competitors": [
+    {
+      "name": "Haines Medical Australia",
+      "priority_weight": "high",
+      "website": "https://hainesmedical.com.au/",
+      "linkedin": "https://www.linkedin.com/company/haines-medical-australia",
+      "queries": [
+        "Haines Medical Australia new product patient handling",
+        "Haines Medical Australia FloMat air transfer mat",
+        "Haines Medical Australia infection prevention PPE underpads curtains",
+        "site:hainesmedical.com.au new patient handling infection prevention"
+      ]
+    },
+    {
+      "name": "Lateral Medical",
+      "priority_weight": "medium",
+      "website": "https://lateralmedical.com/",
+      "linkedin": "https://www.linkedin.com/company/lateral-medical/",
+      "queries": [
+        "Lateral Medical Australia product news infection control theatre",
+        "site:lateralmedical.com new product medical Australia"
+      ]
+    },
+    {
+      "name": "Arjo Australia",
+      "priority_weight": "medium",
+      "website": "https://www.arjo.com/en-au/",
+      "linkedin": "https://www.linkedin.com/company/arjoglobal/",
+      "queries": [
+        "Arjo Australia patient handling new product",
+        "Arjo Australia Maxi Move Sentego stretcher pressure injury",
+        "site:arjo.com/en-au patient handling lateral transfer stretcher"
+      ]
+    },
+    {
+      "name": "Aidacare",
+      "priority_weight": "medium",
+      "website": "https://www.aidacare.com.au/",
+      "linkedin": "https://www.linkedin.com/company/aidacare-pty-ltd/",
+      "queries": [
+        "Aidacare Australia hospital acute care new products",
+        "Aidacare Aspire patient handling hospital bed",
+        "site:aidacare.com.au product alert hospital acute care"
+      ]
+    },
+    {
+      "name": "Novis Healthcare",
+      "priority_weight": "medium",
+      "website": "https://novis.com.au/",
+      "linkedin": "https://www.linkedin.com/company/novishealthcare/",
+      "queries": [
+        "Novis Healthcare Australia pressure care patient lifting",
+        "Novis Healthcare ProCair Molift Etac new product",
+        "site:novis.com.au news pressure care patient lifting"
+      ]
+    },
+    {
+      "name": "Patient Handling",
+      "priority_weight": "medium",
+      "website": "https://www.patienthandling.com.au/",
+      "linkedin": "https://www.linkedin.com/company/patient-handling/",
+      "queries": [
+        "Patient Handling Australia hoists slings slide sheets new products",
+        "site:patienthandling.com.au hoists slings pressure mattress"
+      ]
+    },
+    {
+      "name": "Etac",
+      "priority_weight": "medium",
+      "website": "https://www.etac.com/en-au/australia/",
+      "linkedin": "https://www.linkedin.com/company/etac/",
+      "queries": [
+        "Etac Australia Molift patient lifting new product",
+        "Etac Australia patient handling pressure care"
+      ]
+    },
+    {
+      "name": "HoverTech",
+      "priority_weight": "medium",
+      "website": "https://hovertechinternational.com/",
+      "linkedin": "https://www.linkedin.com/company/hovertech-an-etac-company/",
+      "queries": [
+        "HoverTech Australia air assisted transfer",
+        "HoverTech Etac new product patient transfer",
+        "HoverMatt air assisted transfer Australia"
+      ]
+    },
+    {
+      "name": "Anetic Aid",
+      "priority_weight": "medium",
+      "website": "https://aneticaid.com/",
+      "linkedin": "https://www.linkedin.com/company/anetic-aid-ltd",
+      "queries": [
+        "Anetic Aid new stretcher trolley theatre equipment",
+        "Anetic Aid QA3 QA4 Australia distributor"
+      ]
+    },
+    {
+      "name": "Cubro",
+      "priority_weight": "low",
+      "website": "https://www.cubro.co.nz/",
+      "linkedin": "https://www.linkedin.com/company/cubro",
+      "queries": [
+        "Cubro healthcare equipment Australia hospital care",
+        "Cubro patient transfer pressure care hospital products"
+      ]
+    },
+    {
+      "name": "Joerns / Oxford",
+      "priority_weight": "medium",
+      "website": "https://www.joerns.com.au/",
+      "linkedin": "",
+      "queries": [
+        "Joerns Australia Oxford hoist sling patient lifting",
+        "Oxford hoist Australia new product sling"
+      ]
+    },
+    {
+      "name": "Healthcare Equipment Australia",
+      "priority_weight": "low",
+      "website": "https://www.healthcareequipment.com.au/",
+      "linkedin": "",
+      "queries": [
+        "Healthcare Equipment Australia hospital beds trolleys patient handling"
+      ]
+    }
+  ],
+  "jdhg_suppliers_to_contextualise": [
+    {
+      "name": "HAcare / BMB Medical",
+      "website": "https://hacare.com/",
+      "linkedin": "https://www.linkedin.com/company/hacare-medicalinterior/",
+      "competitor_queries": [
+        "BMB Medical competitor hospital stretcher treatment chair Australia",
+        "HAcare BMB competitor patient stretcher transfer chair",
+        "hospital stretcher treatment chair suppliers Australia Arjo Stryker LINET Haelvoet"
+      ]
+    },
+    {
+      "name": "D.A. Surgical",
+      "website": "https://da-surgical.com/",
+      "linkedin": "https://www.linkedin.com/company/16197183",
+      "competitor_queries": [
+        "D.A. Surgical competitor patient positioning Trendelenburg Australia",
+        "surgical patient positioning competitor TrenGuard Allen Medical SchureMed",
+        "Trendelenburg patient positioning system Australia"
+      ]
+    },
+    {
+      "name": "RIHA Industries / StaminaLift",
+      "website": "https://www.rihaindustries.com/",
+      "linkedin": "",
+      "competitor_queries": [
+        "StaminaLift competitor hospital bed mover Australia",
+        "hospital bed mover electric tug Australia Electrodrive Movexx MasterMover",
+        "RIHA Industries StaminaLift Healthscope Ramsay"
+      ]
+    },
+    {
+      "name": "Shotton Parmed",
+      "website": "https://parmed.com.au/",
+      "linkedin": "",
+      "competitor_queries": [
+        "Shotton Parmed competitor mortuary hospital equipment Australia",
+        "mortuary equipment supplier Australia Mopec Mortech LEEC"
+      ]
+    }
+  ]
+}

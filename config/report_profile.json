@@ -1,0 +1,47 @@
+{
+  "organisation": "JD Healthcare Group",
+  "report_title": "JDHG Market Landscape & Competitor Intelligence",
+  "recipient_email": "snkr.frkr@gmail.com",
+  "region_focus": "Australia",
+  "exclude_tenders_for_now": true,
+  "priority_rules": {
+    "high": [
+      "New ARTG entry in direct overlapping category",
+      "Competitor launch of directly competing product",
+      "Regulatory or safety signal affecting JDHG categories",
+      "Major distributor or supplier partnership",
+      "High-signal Haines Medical activity"
+    ],
+    "medium": [
+      "Relevant product page, catalogue, resource or messaging change",
+      "Adjacent competitor activity in supplier ecosystem",
+      "Account or hospital group reference worth monitoring"
+    ],
+    "low": [
+      "General market messaging",
+      "Routine content updates",
+      "Weak or possible signal needing confirmation"
+    ]
+  },
+  "action_labels": [
+    "Review product overlap",
+    "Monitor",
+    "Update sales collateral",
+    "Add to tender intelligence",
+    "Account follow-up",
+    "Compliance review",
+    "No action"
+  ],
+  "report_sections": [
+    "Executive Summary",
+    "High-Priority Signals",
+    "Medium-Priority Signals",
+    "Low-Priority Signals",
+    "New ARTG / Regulatory Signals",
+    "Competitor Website / Announcement Changes",
+    "LinkedIn / Market Messaging Signals",
+    "Tender Award / Contract Signals",
+    "Suggested JDHG Actions",
+    "Watchlist for Next Scan"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "keywords": [
+    "patient handling",
+    "patient positioning",
+    "lateral transfer",
+    "air-assisted transfer",
+    "floor recovery",
+    "hoist",
+    "patient lifter",
+    "sling",
+    "transfer board",
+    "slide sheet",
+    "pressure care",
+    "pressure injury",
+    "hospital bed",
+    "aged care bed",
+    "patient trolley",
+    "stretcher",
+    "treatment chair",
+    "transfer chair",
+    "underpad",
+    "apron",
+    "gown",
+    "PPE",
+    "privacy curtain",
+    "antibacterial curtain",
+    "infection control",
+    "theatre consumable",
+    "bed mover"
+  ],
+  "artg_sources": [
+    {
+      "name": "TGA ARTG public register",
+      "url": "https://www.tga.gov.au/resources/artg",
+      "queries": [
+        "site:tga.gov.au/resources/artg ARTG patient handling Australia",
+        "site:tga.gov.au/resources/artg ARTG patient positioning device Australia",
+        "site:tga.gov.au/resources/artg ARTG hospital bed stretcher patient trolley",
+        "site:tga.gov.au/resources/artg ARTG infection control gown apron PPE"
+      ]
+    }
+  ]
+}
