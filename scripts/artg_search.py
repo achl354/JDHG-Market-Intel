@@ -152,6 +152,7 @@ def extract_grid_rows(frame: Frame, max_scrolls: int = 60, max_rows: int = 2000)
                 grid.page.mouse.wheel(0, 500)
             except Exception:
                 break
+        grid.page.wait_for_timeout(500)  # let the virtualized grid render newly-scrolled rows
     return list(seen.values())
 
 
