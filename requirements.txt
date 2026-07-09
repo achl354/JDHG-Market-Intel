@@ -1,6 +1,7 @@
 beautifulsoup4==4.12.3
 chardet==5.2.0
 openpyxl==3.1.5
+playwright==1.61.0
 python-dateutil==2.9.0.post0
 reportlab==4.2.5
 requests==2.32.3

@@ -20,6 +20,8 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
+import artg_search
+
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "config"
 REPORTS = ROOT / "reports"
@@ -210,25 +212,51 @@ def collect_candidates(watchlist: dict[str, Any], artg_config: dict[str, Any], d
                     )
                 )
 
-    for source in artg_config["artg_sources"]:
-        for query in source.get("queries", []):
-            for result in tavily_search(query, max_results=4):
-                candidates.append(
-                    Candidate(
-                        source=result.get("url", ""),
-                        source_type="ARTG / regulatory",
-                        url=result.get("url", ""),
-                        date_found=date_found,
-                        competitor_or_sponsor="TGA / ARTG",
-                        product_category="Regulatory signal",
-                        title=clean_text(result.get("title", "")),
-                        snippet=clean_text(result.get("content", "")),
-                        evidence=f"Search query: {query}",
-                    )
-                )
-
+    candidates.extend(collect_artg_candidates(watchlist, artg_config, date_found))
     candidates.extend(detect_source_page_changes(watchlist, date_found))
     return dedupe_candidates(candidates)
+
+
+def collect_artg_candidates(watchlist: dict[str, Any], artg_config: dict[str, Any], date_found: str) -> list[Candidate]:
+    """New ARTG listings found by driving the TGA's public ARTG Search
+    Visualisation Tool directly (see artg_search.py), rather than hoping a
+    web search happens to surface a matching page."""
+    competitor_names = [c["name"] for c in watchlist["competitors"]]
+    keywords = artg_config.get("keywords", [])
+    try:
+        entries, warnings = artg_search.find_new_artg_listings(keywords, competitor_names)
+    except Exception as exc:  # noqa: BLE001
+        print(f"ARTG search failed: {exc}")
+        return []
+
+    for warning in warnings:
+        print(f"ARTG search warning: {warning}")
+
+    candidates = []
+    for entry in entries:
+        matched = entry.get("matched_competitor") or entry.get("matched_keyword") or ""
+        sponsor_label = entry.get("matched_competitor") or entry.get("sponsor_name") or "TGA / ARTG"
+        candidates.append(
+            Candidate(
+                source=f"ARTG ID {entry['artg_id']}",
+                source_type="ARTG / regulatory - new listing",
+                url=artg_search.ARTG_URL,
+                date_found=date_found,
+                competitor_or_sponsor=sponsor_label,
+                product_category=f"New ARTG entry: {entry.get('product_name', '')}",
+                title=entry.get("product_name") or "Unnamed ARTG entry",
+                snippet=(
+                    f"ARTG ID {entry['artg_id']}. Sponsor: {entry.get('sponsor_name', '')}. "
+                    f"Manufacturer: {entry.get('manufacturer_name') or 'Not applicable'}. "
+                    f"Matched watchlist term: {matched}."
+                ),
+                evidence=(
+                    f"New ARTG entry (ARTG ID {entry['artg_id']}) not present in the previous "
+                    "fortnightly scan's snapshot, found via the TGA ARTG Search Visualisation Tool."
+                ),
+            )
+        )
+    return candidates
 
 
 def detect_source_page_changes(watchlist: dict[str, Any], date_found: str) -> list[Candidate]:

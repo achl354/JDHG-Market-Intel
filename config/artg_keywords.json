@@ -27,17 +27,5 @@
     "infection control",
     "theatre consumable",
     "bed mover"
-  ],
-  "artg_sources": [
-    {
-      "name": "TGA ARTG public register",
-      "url": "https://www.tga.gov.au/resources/artg",
-      "queries": [
-        "site:tga.gov.au/resources/artg ARTG patient handling Australia",
-        "site:tga.gov.au/resources/artg ARTG patient positioning device Australia",
-        "site:tga.gov.au/resources/artg ARTG hospital bed stretcher patient trolley",
-        "site:tga.gov.au/resources/artg ARTG infection control gown apron PPE"
-      ]
-    }
   ]
 }

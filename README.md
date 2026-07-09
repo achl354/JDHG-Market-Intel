@@ -2,7 +2,7 @@
 
 Fortnightly Australian healthcare equipment market scan for JD Healthcare Group.
 
-The workflow monitors public web sources, ARTG/regulatory signals, supplier and competitor pages, and confirmed LinkedIn company pages. It creates:
+The workflow monitors public web sources, supplier and competitor pages, confirmed LinkedIn company pages, and new ARTG (Australian Register of Therapeutic Goods) listings. ARTG listings are found by directly driving the TGA's [ARTG Search Visualisation Tool](https://compliance.health.gov.au/artg/) (a Power BI report, not a documented API) with Playwright, filtering to the fortnightly window, and diffing ARTG IDs against the previous scan's snapshot so only genuinely new entries are reported. It creates:
 
 - Markdown report
 - Branded PDF report
