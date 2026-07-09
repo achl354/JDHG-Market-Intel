@@ -1,6 +1,7 @@
-"""One-off exploration script: figure out how to type a search term into the
-TGA ARTG Search Visualisation Tool (a Power BI report embed) and read back
-the results grid, so we can build a real scraper.
+"""One-off exploration script: the ARTG Search Visualisation Tool has an
+"Advanced Search" page (linked from the home page) which is likely to have
+real form inputs rather than the fragile Q&A search box we tried before.
+Dump its structure and try running a search on it.
 
 Not part of the regular scan pipeline. Run via the artg-debug-explore workflow
 because compliance.health.gov.au is not reachable from most sandboxes.
@@ -17,7 +18,6 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "artg_debug_output"
 URL = "https://compliance.health.gov.au/artg/"
-SEARCH_TERM = "Haines"
 
 
 def dump(label: str, data) -> None:
@@ -26,47 +26,29 @@ def dump(label: str, data) -> None:
     print(f"----{label}-JSON-END----")
 
 
-def grid_text(frame) -> str:
-    try:
-        return frame.locator("[role=grid]").first.inner_text(timeout=5000)
-    except Exception as exc:  # noqa: BLE001
-        return f"<grid read error: {exc}>"
+def describe_elements(scope) -> list[dict]:
+    return scope.eval_on_selector_all(
+        "input, button, select, [role], textarea, a",
+        """els => els.slice(0, 300).map(el => ({
+            tag: el.tagName,
+            type: el.getAttribute('type'),
+            role: el.getAttribute('role'),
+            placeholder: el.getAttribute('placeholder'),
+            aria_label: el.getAttribute('aria-label'),
+            id: el.id,
+            name: el.getAttribute('name'),
+            class: (el.className || '').toString().slice(0, 80),
+            text: (el.innerText || '').slice(0, 60),
+        }))""",
+    )
 
 
 def main() -> None:
     OUT.mkdir(exist_ok=True)
-    network_log: list[dict] = []
-    interesting_hosts = ("analysis.windows.net", "powerbi.com/explore", "querydata")
-
-    def on_request(request):
-        if request.resource_type in ("xhr", "fetch") and "analysis.windows.net" in request.url:
-            entry = {
-                "phase": "request",
-                "url": request.url,
-                "method": request.method,
-                "headers": dict(request.headers),
-            }
-            try:
-                entry["post_data"] = (request.post_data or "")[:6000]
-            except Exception as exc:  # noqa: BLE001
-                entry["post_data_error"] = str(exc)
-            network_log.append(entry)
-
-    def on_response(response):
-        req = response.request
-        if req.resource_type in ("xhr", "fetch") and "analysis.windows.net" in response.url:
-            entry = {"phase": "response", "url": response.url, "status": response.status}
-            try:
-                entry["body_snippet"] = response.text()[:6000]
-            except Exception as exc:  # noqa: BLE001
-                entry["body_error"] = str(exc)
-            network_log.append(entry)
 
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page()
-        page.on("request", on_request)
-        page.on("response", on_response)
 
         print(f"Navigating to {URL}")
         page.goto(URL, wait_until="networkidle", timeout=60000)
@@ -78,62 +60,28 @@ def main() -> None:
             browser.close()
             return
 
-        print("BEFORE SEARCH:")
-        print(grid_text(pbi_frame)[:3000])
-
-        search_group = pbi_frame.locator("[aria-label^='Search by AUST L']").first
+        adv_link = pbi_frame.locator("[aria-label*='Advanced ARTG Search Page']").first
         try:
-            search_group.click(timeout=10000)
-            print("Clicked search group.")
+            adv_link.click(timeout=10000)
+            print("Clicked Advanced Search nav link.")
         except Exception as exc:  # noqa: BLE001
-            print(f"click search group failed: {exc}")
+            print(f"click advanced search failed: {exc}")
+            browser.close()
+            return
 
-        page.wait_for_timeout(1500)
+        page.wait_for_timeout(4000)
 
-        revealed = pbi_frame.locator("input, textarea, [contenteditable='true']")
-        count = revealed.count()
-        print(f"revealed input-like elements: {count}")
-        revealed_info = []
-        for i in range(min(count, 15)):
-            el = revealed.nth(i)
-            try:
-                html = el.evaluate("el => el.outerHTML.slice(0, 300)")
-            except Exception as exc:  # noqa: BLE001
-                html = f"<error: {exc}>"
-            try:
-                visible = el.is_visible()
-            except Exception:
-                visible = None
-            revealed_info.append({"i": i, "html": html, "visible": visible})
-        dump("REVEALED-INPUTS", revealed_info)
+        adv_elements = describe_elements(pbi_frame)
+        dump("ADV-ELEMENTS", adv_elements)
 
-        typed = False
-        for i in range(min(count, 15)):
-            el = revealed.nth(i)
-            try:
-                if el.is_visible():
-                    el.click(timeout=2000)
-                    el.type(SEARCH_TERM, delay=60)
-                    typed = True
-                    print(f"Typed into revealed input #{i}")
-                    break
-            except Exception as exc:  # noqa: BLE001
-                print(f"  input #{i} failed: {exc}")
+        try:
+            grid_text = pbi_frame.locator("[role=grid]").first.inner_text(timeout=5000)
+        except Exception as exc:  # noqa: BLE001
+            grid_text = f"<grid read error: {exc}>"
+        print("ADV PAGE GRID TEXT:")
+        print(grid_text[:3000])
 
-        if not typed:
-            print("No revealed input accepted typing; trying raw keyboard input instead.")
-            page.keyboard.type(SEARCH_TERM, delay=60)
-
-        page.wait_for_timeout(1500)
-        page.keyboard.press("Enter")
-        page.wait_for_timeout(5000)
-
-        print("AFTER SEARCH:")
-        print(grid_text(pbi_frame)[:5000])
-
-        dump("NETWORK-QUERY-CALLS", network_log)
-
-        page.screenshot(path=str(OUT / "02_after_search.png"), full_page=True)
+        page.screenshot(path=str(OUT / "03_advanced_search.png"), full_page=True)
 
         browser.close()
 
