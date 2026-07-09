@@ -1,6 +1,7 @@
-"""One-off exploration script: verify that typing into the "Focussed Search"
-box on the ARTG Advanced Search page actually filters the results grid, and
-capture the query network traffic while doing it.
+"""One-off exploration script: the Advanced Search page has a "Goods Started
+by Date Range" visual backed by two `.date-slicer-input` text fields. Try
+setting those to a recent date range and see if the results grid actually
+filters to newly-started ARTG entries.
 
 Not part of the regular scan pipeline. Run via the artg-debug-explore workflow
 because compliance.health.gov.au is not reachable from most sandboxes.
@@ -17,13 +18,8 @@ from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parents[1] / "artg_debug_output"
 URL = "https://compliance.health.gov.au/artg/"
-SEARCH_TERM = "Haines"
-
-
-def dump(label: str, data) -> None:
-    print(f"----{label}-JSON-START----")
-    print(json.dumps(data, indent=2, default=str)[:20000])
-    print(f"----{label}-JSON-END----")
+START_DATE = "01 July 2026"
+END_DATE = "10 July 2026"
 
 
 def grid_summary(frame) -> str:
@@ -32,7 +28,7 @@ def grid_summary(frame) -> str:
         rows = grid.locator("[role=row]")
         count = rows.count()
         sample = []
-        for i in range(min(count, 6)):
+        for i in range(min(count, 8)):
             cells = rows.nth(i).locator("[role=gridcell]")
             cc = cells.count()
             sample.append([cells.nth(j).inner_text().strip()[:40] for j in range(cc)])
@@ -43,22 +39,10 @@ def grid_summary(frame) -> str:
 
 def main() -> None:
     OUT.mkdir(exist_ok=True)
-    network_log: list[dict] = []
-
-    def on_response(response):
-        req = response.request
-        if req.resource_type in ("xhr", "fetch") and "analysis.windows.net" in response.url and "querydata" in response.url.lower():
-            entry = {"url": response.url, "status": response.status}
-            try:
-                entry["body_snippet"] = response.text()[:4000]
-            except Exception as exc:  # noqa: BLE001
-                entry["body_error"] = str(exc)
-            network_log.append(entry)
 
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page()
-        page.on("response", on_response)
 
         print(f"Navigating to {URL}")
         page.goto(URL, wait_until="networkidle", timeout=60000)
@@ -72,59 +56,37 @@ def main() -> None:
 
         pbi_frame.locator("[aria-label*='Advanced ARTG Search Page']").first.click(timeout=10000)
         page.wait_for_timeout(4000)
-        print("On Advanced Search page.")
         print("BEFORE:", grid_summary(pbi_frame))
 
-        focussed = pbi_frame.locator("text=Focussed Search").first
-        try:
-            focussed.click(timeout=10000)
-            print("Clicked Focussed Search group.")
-        except Exception as exc:  # noqa: BLE001
-            print(f"click Focussed Search failed: {exc}")
-
-        page.wait_for_timeout(1500)
-
-        revealed = pbi_frame.locator("input, textarea, [contenteditable='true']")
-        count = revealed.count()
-        print(f"revealed input-like elements: {count}")
-        typed = False
-        for i in range(count):
-            el = revealed.nth(i)
+        date_inputs = pbi_frame.locator(".date-slicer-input")
+        n = date_inputs.count()
+        print(f"date-slicer-input count: {n}")
+        for i in range(n):
             try:
-                if el.is_visible():
-                    html = el.evaluate("e => e.outerHTML.slice(0,200)")
-                    print(f"  candidate #{i}: {html}")
-            except Exception:
-                pass
-        for i in range(count):
-            el = revealed.nth(i)
-            try:
-                if el.is_visible():
-                    el.click(timeout=2000)
-                    el.type(SEARCH_TERM, delay=80)
-                    typed = True
-                    print(f"Typed into input #{i}")
-                    break
+                html = date_inputs.nth(i).evaluate("e => e.outerHTML.slice(0,300)")
+                print(f"  date input #{i}: {html}")
             except Exception as exc:  # noqa: BLE001
-                print(f"  input #{i} failed: {exc}")
+                print(f"  date input #{i} evaluate failed: {exc}")
 
-        if not typed:
-            print("Falling back to raw keyboard typing.")
-            page.keyboard.type(SEARCH_TERM, delay=80)
+        if n >= 2:
+            for i, value in [(0, START_DATE), (1, END_DATE)]:
+                try:
+                    el = date_inputs.nth(i)
+                    el.click(timeout=3000)
+                    el.fill("", timeout=2000)
+                    el.type(value, delay=60)
+                    el.press("Enter")
+                    print(f"Set date input #{i} to {value!r}")
+                except Exception as exc:  # noqa: BLE001
+                    print(f"  failed to set date input #{i}: {exc}")
+            page.wait_for_timeout(5000)
+            print("AFTER DATE FILTER:", grid_summary(pbi_frame))
+            page.wait_for_timeout(4000)
+            print("AFTER EXTRA WAIT:", grid_summary(pbi_frame))
+        else:
+            print("Fewer than 2 date-slicer-input elements found; cannot set range.")
 
-        page.wait_for_timeout(3000)
-        print("AFTER TYPE (before Enter):", grid_summary(pbi_frame))
-
-        page.keyboard.press("Enter")
-        page.wait_for_timeout(6000)
-        print("AFTER ENTER:", grid_summary(pbi_frame))
-
-        page.wait_for_timeout(4000)
-        print("AFTER EXTRA WAIT:", grid_summary(pbi_frame))
-
-        dump("QUERYDATA-CALLS", network_log)
-
-        page.screenshot(path=str(OUT / "04_focussed_search.png"), full_page=True)
+        page.screenshot(path=str(OUT / "05_date_filter.png"), full_page=True)
         browser.close()
 
     print(f"Wrote debug output to {OUT}")
