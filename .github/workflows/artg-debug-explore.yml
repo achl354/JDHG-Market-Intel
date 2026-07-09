@@ -2,6 +2,12 @@ name: ARTG Debug Explore (temporary)
 
 on:
   workflow_dispatch: {}
+  push:
+    branches:
+      - claude/market-intel-artg-report-4t4j5x
+    paths:
+      - ".github/workflows/artg-debug-explore.yml"
+      - "scripts/artg_debug_explore.py"
 
 jobs:
   explore:
