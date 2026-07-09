@@ -1,0 +1,36 @@
+name: ARTG Debug Explore (temporary)
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - claude/market-intel-artg-report-4t4j5x
+    paths:
+      - ".github/workflows/artg-debug-explore.yml"
+      - "scripts/artg_debug_explore.py"
+
+jobs:
+  explore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+
+      - name: Explore ARTG tool
+        run: python scripts/artg_debug_explore.py
+
+      - name: Upload debug output
+        uses: actions/upload-artifact@v4
+        with:
+          name: artg-debug-output
+          path: artg_debug_output/
